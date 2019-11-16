@@ -97,6 +97,10 @@ class LinearProbeHashTable : public HashTable<KeyType, ValueType, KeyComparator>
 
   // Hash function
   HashFunction<KeyType> hash_fn_;
+  size_t num_buckets_;
+
+  MappingType GetBucket(size_t bucket_index, int *status);  // 0: readable, 1: tombstone, 2: brand new
+  void SetBucket(size_t bucket_index, const KeyType &key, const ValueType &value, int option);  // 0: insert, 1:remove
 };
 
 }  // namespace bustub

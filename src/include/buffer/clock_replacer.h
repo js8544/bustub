@@ -14,6 +14,7 @@
 
 #include <list>
 #include <mutex>  // NOLINT
+#include <unordered_map>
 #include <vector>
 
 #include "buffer/replacer.h"
@@ -46,7 +47,13 @@ class ClockReplacer : public Replacer {
   size_t Size() override;
 
  private:
-  // TODO(student): implement me!
+  // Record the status of each frame
+  // 0: not in ClockReplacer, 1: ref = true, 2: ref = false;
+  std::vector<int> frame_status_;
+  size_t num_frame_;     // Number of frames
+  size_t num_replacer_;  // Number of frames in the replacer
+  size_t clock_hand_;    // Current clock hand position
+  std::mutex mtx_;       // Mutex for thread-safeness
 };
 
 }  // namespace bustub

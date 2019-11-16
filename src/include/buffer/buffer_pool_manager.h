@@ -15,6 +15,7 @@
 #include <list>
 #include <mutex>  // NOLINT
 #include <unordered_map>
+#include <vector>
 
 #include "buffer/clock_replacer.h"
 #include "recovery/log_manager.h"
