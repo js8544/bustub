@@ -51,7 +51,6 @@ bool HASH_TABLE_BLOCK_TYPE::IsOccupied(slot_offset_t bucket_ind) const {
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BLOCK_TYPE::IsReadable(slot_offset_t bucket_ind)  const {
   return readable_[bucket_ind/8] & (1 << (bucket_ind % 8));
-}
 
 // DO NOT REMOVE ANYTHING BELOW THIS LINE
 template class HashTableBlockPage<int, int, IntComparator>;
