@@ -97,16 +97,73 @@ class HashJoinExecutor : public AbstractExecutor {
    */
   HashJoinExecutor(ExecutorContext *exec_ctx, const HashJoinPlanNode *plan, std::unique_ptr<AbstractExecutor> &&left,
                    std::unique_ptr<AbstractExecutor> &&right)
-      : AbstractExecutor(exec_ctx) {}
+      : AbstractExecutor(exec_ctx),
+        plan_(plan),
+        predicate_(plan_->Predicate()),
+        left_(std::move(left)),
+        right_(std::move(right)),
+        jht_(HT("SHT", nullptr, jht_comp_, jht_num_buckets_, jht_hash_fn_)) {}
 
   /** @return the JHT in use. Do not modify this function, otherwise you will get a zero. */
-  // Uncomment me! const HT *GetJHT() const { return &jht_; }
+  const HT *GetJHT() const { return &jht_; }
 
   const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
 
-  void Init() override {}
+  void Init() override {
+    left_->Init();
+    right_->Init();
+    Tuple tuple;
+    while (left_->Next(&tuple)) {
+      assert(tuple.IsAllocated());
+      assert(tuple.GetData() != nullptr);
 
-  bool Next(Tuple *tuple) override { return false; }
+      hash_t hash = HashValues(&tuple, left_->GetOutputSchema(), plan_->GetLeftKeys());
+      jht_.Insert(nullptr, hash, tuple);
+    }
+  }
+
+  bool Next(Tuple *tuple) override {
+    if (!tuples_.empty()) {
+      *tuple = tuples_.back();
+      tuples_.pop_back();
+      return true;
+    }
+    Tuple tup;
+    // std::cout<<"h1\n";
+    while (right_->Next(&tup)) {
+      assert(tup.IsAllocated());
+      assert(tup.GetData() != nullptr);
+
+      // std::cout<<"h2\n";
+      hash_t hash = HashValues(&tup, right_->GetOutputSchema(), plan_->GetRightKeys());
+      std::vector<Tuple> t;
+      jht_.GetValue(nullptr, hash, &t);
+      // std::cout<<"h3\n";
+
+      for (Tuple &left_tup : t) {
+        // std::cout<<"h4\n";
+
+        if (predicate_->EvaluateJoin(&left_tup, left_->GetOutputSchema(), &tup, right_->GetOutputSchema())
+                .GetAs<bool>()) {
+          std::vector<Value> result;
+          std::vector<Column> columns = plan_->OutputSchema()->GetColumns();
+          for (Column &col : columns) {
+            const AbstractExpression *expr = col.GetExpr();
+            result.push_back(expr->EvaluateJoin(&left_tup, left_->GetOutputSchema(), &tup, right_->GetOutputSchema()));
+          }
+          tuples_.emplace_back(Tuple(result, plan_->OutputSchema()));
+        }
+      }
+      if (!tuples_.empty()) {
+        *tuple = tuples_.back();
+        tuples_.pop_back();
+        return true;
+      }
+    }
+    // std::cout<<"h100\n";
+
+    return false;
+  }
 
   /**
    * Hashes a tuple by evaluating it against every expression on the given schema, combining all non-null hashes.
@@ -133,13 +190,19 @@ class HashJoinExecutor : public AbstractExecutor {
  private:
   /** The hash join plan node. */
   const HashJoinPlanNode *plan_;
+
+  const AbstractExpression *predicate_;
   /** The comparator is used to compare hashes. */
   [[maybe_unused]] HashComparator jht_comp_{};
   /** The identity hash function. */
   IdentityHashFunction jht_hash_fn_{};
 
+  std::unique_ptr<AbstractExecutor> left_;
+  std::unique_ptr<AbstractExecutor> right_;
+
+  std::vector<Tuple> tuples_;
   /** The hash table that we are using. */
-  // Uncomment me! HT jht_;
+  HT jht_;
   /** The number of buckets in the hash table. */
   static constexpr uint32_t jht_num_buckets_ = 2;
 };

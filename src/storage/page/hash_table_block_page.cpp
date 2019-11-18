@@ -9,9 +9,10 @@
 // Copyright (c) 2015-2019, Carnegie Mellon University Database Group
 //
 //===----------------------------------------------------------------------===//
+#include "storage/page/hash_table_block_page.h"
+
 #include <utility>
 
-#include "storage/page/hash_table_block_page.h"
 #include "storage/index/generic_key.h"
 
 namespace bustub {
@@ -28,30 +29,30 @@ ValueType HASH_TABLE_BLOCK_TYPE::ValueAt(slot_offset_t bucket_ind) const {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BLOCK_TYPE::Insert(slot_offset_t bucket_ind, const KeyType &key, const ValueType &value) {
-  if(IsReadable(bucket_ind)){
+  if (IsReadable(bucket_ind)) {
     return false;
   }
-  
-  occupied_[bucket_ind/8] |= (1 << (bucket_ind % 8));
-  readable_[bucket_ind/8] |= (1 << (bucket_ind % 8));
+
+  occupied_[bucket_ind / 8] |= (1 << (bucket_ind % 8));
+  readable_[bucket_ind / 8] |= (1 << (bucket_ind % 8));
   array_[bucket_ind] = std::make_pair(key, value);
   return true;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 void HASH_TABLE_BLOCK_TYPE::Remove(slot_offset_t bucket_ind) {
-  readable_[bucket_ind/8] &= ~(1 << (bucket_ind % 8));
+  readable_[bucket_ind / 8] &= ~(1 << (bucket_ind % 8));
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BLOCK_TYPE::IsOccupied(slot_offset_t bucket_ind) const {
-  return occupied_[bucket_ind/8] & (1 << (bucket_ind % 8));
+  return occupied_[bucket_ind / 8] & (1 << (bucket_ind % 8));
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
-bool HASH_TABLE_BLOCK_TYPE::IsReadable(slot_offset_t bucket_ind)  const {
-  return readable_[bucket_ind/8] & (1 << (bucket_ind % 8));
-
+bool HASH_TABLE_BLOCK_TYPE::IsReadable(slot_offset_t bucket_ind) const {
+  return readable_[bucket_ind / 8] & (1 << (bucket_ind % 8));
+}
 // DO NOT REMOVE ANYTHING BELOW THIS LINE
 template class HashTableBlockPage<int, int, IntComparator>;
 template class HashTableBlockPage<GenericKey<4>, RID, GenericComparator<4>>;

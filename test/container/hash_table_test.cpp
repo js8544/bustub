@@ -175,7 +175,6 @@ TEST(HashTableTest, SampleTest) {
     }
   }
 
-  
   disk_manager->ShutDown();
   remove("test.db");
   delete disk_manager;
