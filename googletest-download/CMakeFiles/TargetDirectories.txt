@@ -1,3 +1,0 @@
-/Users/JinShang/Dropbox/15-645/P1/bustub/googletest-download/CMakeFiles/rebuild_cache.dir
-/Users/JinShang/Dropbox/15-645/P1/bustub/googletest-download/CMakeFiles/edit_cache.dir
-/Users/JinShang/Dropbox/15-645/P1/bustub/googletest-download/CMakeFiles/googletest.dir
