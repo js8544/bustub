@@ -19,7 +19,9 @@
 // #include "common/logger.h"
 #include "common/rid.h"
 #include "container/hash/linear_probe_hash_table.h"
-
+#include "common/util/hash_util.h"
+#include "storage/table/tmp_tuple.h"
+#include "storage/index/hash_comparator.h"
 namespace bustub {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
@@ -314,5 +316,6 @@ template class LinearProbeHashTable<GenericKey<8>, RID, GenericComparator<8>>;
 template class LinearProbeHashTable<GenericKey<16>, RID, GenericComparator<16>>;
 template class LinearProbeHashTable<GenericKey<32>, RID, GenericComparator<32>>;
 template class LinearProbeHashTable<GenericKey<64>, RID, GenericComparator<64>>;
+template class LinearProbeHashTable<hash_t, TmpTuple, HashComparator>;
 
 }  // namespace bustub

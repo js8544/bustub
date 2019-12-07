@@ -77,11 +77,11 @@ class SimpleHashJoinHashTable {
 };
 
 // TODO(student): when you are ready to attempt task 3, replace the using declaration!
-using HT = SimpleHashJoinHashTable;
+// using HT = SimpleHashJoinHashTable;
 
-// using HashJoinKeyType = ???;
-// using HashJoinValType = ???;
-// using HT = LinearProbeHashTable<HashJoinKeyType, HashJoinValType, HashComparator>;
+using HashJoinKeyType = hash_t;
+using HashJoinValType = TmpTuple;
+using HT = LinearProbeHashTable<HashJoinKeyType, HashJoinValType, HashComparator>;
 
 /**
  * HashJoinExecutor executes hash join operations.
@@ -102,7 +102,11 @@ class HashJoinExecutor : public AbstractExecutor {
         predicate_(plan_->Predicate()),
         left_(std::move(left)),
         right_(std::move(right)),
-        jht_(HT("SHT", nullptr, jht_comp_, jht_num_buckets_, jht_hash_fn_)) {}
+        jht_(HT("LPHT", exec_ctx_->GetBufferPoolManager(), jht_comp_, jht_num_buckets_, jht_hash_fn_)) {
+          for(size_t i = 0; i < 1000; ++i){
+            pages_[i].Init(i, PAGE_SIZE);
+          }
+        }
 
   /** @return the JHT in use. Do not modify this function, otherwise you will get a zero. */
   const HT *GetJHT() const { return &jht_; }
@@ -113,12 +117,29 @@ class HashJoinExecutor : public AbstractExecutor {
     left_->Init();
     right_->Init();
     Tuple tuple;
+    // std::cout<<"h1\n";
     while (left_->Next(&tuple)) {
+      // std::cout<<"h2\n";
+
       assert(tuple.IsAllocated());
       assert(tuple.GetData() != nullptr);
 
       hash_t hash = HashValues(&tuple, left_->GetOutputSchema(), plan_->GetLeftKeys());
-      jht_.Insert(nullptr, hash, tuple);
+      TmpTuple tmptuple;
+      // std::cout<<"h3\n";
+      assert(next_page_ < 1000);
+      if(!pages_[next_page_].Insert(tuple, &tmptuple)){
+        // std::cout<<"h4\n";
+
+        // pages_[next_page_].Init(next_page_, PAGE_SIZE);
+        pages_[next_page_].Insert(tuple, &tmptuple);
+        next_page_++;
+      }
+      // std::cout<<"h5\n";
+
+      jht_.Insert(exec_ctx_->GetTransaction(), hash, tmptuple);
+      // std::cout<<"h6\n";
+
     }
   }
 
@@ -136,12 +157,15 @@ class HashJoinExecutor : public AbstractExecutor {
 
       // std::cout<<"h2\n";
       hash_t hash = HashValues(&tup, right_->GetOutputSchema(), plan_->GetRightKeys());
-      std::vector<Tuple> t;
+      std::vector<TmpTuple> t;
       jht_.GetValue(nullptr, hash, &t);
       // std::cout<<"h3\n";
 
-      for (Tuple &left_tup : t) {
+      for (TmpTuple &left_tmp_tup : t) {
         // std::cout<<"h4\n";
+        char* data = (pages_[left_tmp_tup.GetPageId()].GetData()+left_tmp_tup.GetOffset());
+        Tuple left_tup;
+        left_tup.DeserializeFrom(data);
 
         if (predicate_->EvaluateJoin(&left_tup, left_->GetOutputSchema(), &tup, right_->GetOutputSchema())
                 .GetAs<bool>()) {
@@ -205,5 +229,9 @@ class HashJoinExecutor : public AbstractExecutor {
   HT jht_;
   /** The number of buckets in the hash table. */
   static constexpr uint32_t jht_num_buckets_ = 2;
+
+  // std::vector<std::unique_ptr<TmpTuplePage>> pages_;
+  TmpTuplePage pages_[1000];
+  size_t next_page_{0};
 };
 }  // namespace bustub

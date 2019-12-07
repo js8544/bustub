@@ -8,6 +8,7 @@ namespace bustub {
 
 class TmpTuple {
  public:
+  TmpTuple() : page_id_(INVALID_PAGE_ID), offset_(0) {}
   TmpTuple(page_id_t page_id, size_t offset) : page_id_(page_id), offset_(offset) {}
 
   inline bool operator==(const TmpTuple &rhs) const { return page_id_ == rhs.page_id_ && offset_ == rhs.offset_; }
@@ -16,8 +17,8 @@ class TmpTuple {
   size_t GetOffset() const { return offset_; }
 
  private:
-  page_id_t page_id_;
-  size_t offset_;
+  page_id_t page_id_{0};
+  size_t offset_{0};
 };
 
 }  // namespace bustub
